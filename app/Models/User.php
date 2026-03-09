@@ -6,6 +6,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Laporan;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -44,5 +46,11 @@ class User extends Authenticatable implements JWTSubject
             'role'     => $this->role,
             'username' => $this->username,
         ];
+    }
+
+    // Tambahkan di dalam class User:
+    public function laporan(): HasMany
+    {
+        return $this->hasMany(Laporan::class);
     }
 }

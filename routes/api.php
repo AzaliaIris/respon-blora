@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\LaporanController;
+use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 // ═══════════════════════════════════════
@@ -36,9 +38,37 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
     });
 
     // ── Laporan — akan diisi di Step berikutnya ──
-    // Route::prefix('laporan')->group(function () { ... });
+    // ── Laporan ──
+    Route::prefix('laporan')->group(function () {
 
-    // ── Dashboard/Rekap — Admin, Koordinator, Pimpinan ──
-    // Route::middleware('role:admin,koordinator,pimpinan')->prefix('dashboard')->group(...)
+        // Semua role bisa lihat & buat laporan
+        Route::get('/',    [LaporanController::class, 'index']);
+        Route::post('/',   [LaporanController::class, 'store']);
+        Route::get('/{id}',[LaporanController::class, 'show']);
+
+        // Tindak lanjut: petugas, koordinator, admin
+        Route::post('/{id}/tindak-lanjut', [LaporanController::class, 'tindakLanjut'])
+             ->middleware('role:petugas,koordinator,admin');
+
+        // Verifikasi: hanya koordinator & admin
+        Route::patch('/{id}/verifikasi', [LaporanController::class, 'verifikasi'])
+             ->middleware('role:koordinator,admin');
+    });
+
+    // ── Dashboard — Admin, Koordinator, Pimpinan ──
+    Route::middleware('role:admin,koordinator,pimpinan')
+         ->prefix('dashboard')
+         ->group(function () {
+             Route::get('/ringkasan',          [DashboardController::class, 'ringkasan']);
+             Route::get('/tren-mingguan',      [DashboardController::class, 'trenMingguan']);
+             Route::get('/per-kecamatan',      [DashboardController::class, 'perKecamatan']);
+             Route::get('/per-kendala',        [DashboardController::class, 'perKendala']);
+             Route::get('/tingkat-selesai',    [DashboardController::class, 'tingkatSelesai']);
+             Route::get('/aktivitas-petugas',  [DashboardController::class, 'aktivitasPetugas']);
+         });
+
+    // ── Ekspor CSV — Admin & Pimpinan saja ──
+    Route::middleware('role:admin,pimpinan')
+         ->get('/laporan/ekspor', [DashboardController::class, 'ekspor']);
 
 });

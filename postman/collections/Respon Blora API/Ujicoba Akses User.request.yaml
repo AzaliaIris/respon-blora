@@ -1,0 +1,10 @@
+$kind: http-request
+url: http://127.0.0.1:8000/api/users
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: noauth
+settings:
+  disabledSystemHeaders: []
+order: 4379069402491083

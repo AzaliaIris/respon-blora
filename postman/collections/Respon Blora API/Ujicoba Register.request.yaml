@@ -1,0 +1,21 @@
+$kind: http-request
+url: http://127.0.0.1:8000/api/auth/register
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"name\": \"Petugas Nomor 1\",\r
+
+    \    \"username\": \"petugas_1\",\r
+
+    \    \"email\": \"petugas1@example.com\",\r
+
+    \    \"password\": \"petugas1234\",\r
+
+    \    \"password_confirmation\": \"petugas1234\",\r
+
+    \    \"role\": \"petugas\"\r
+
+    }"
+order: 3126481413428617
