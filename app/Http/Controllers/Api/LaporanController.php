@@ -34,6 +34,11 @@ class LaporanController extends Controller
             $query->where('user_id', $user->id);
         }
 
+        if ($user->role === 'koordinator') {
+            $wilayah = preg_replace('/^kecamatan\s+/i', '', trim($user->wilayah_tugas));
+            $query->where('kecamatan', 'like', '%' . $wilayah . '%');
+        }
+
         // Filter opsional
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -43,6 +48,9 @@ class LaporanController extends Controller
         }
         if ($request->filled('jenis_kendala')) {
             $query->where('jenis_kendala', $request->jenis_kendala);
+        }
+        if ($request->filled('search')) {
+            $query->where('nama_usaha', 'like', '%' . $request->search . '%');
         }
         if ($request->filled('tanggal_dari')) {
             $query->whereDate('tanggal_laporan', '>=', $request->tanggal_dari);

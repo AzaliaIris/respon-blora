@@ -23,6 +23,7 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'wilayah_tugas',
         'is_active',
+        'last_login_at',
     ];
 
     protected $hidden = [
@@ -49,8 +50,8 @@ class User extends Authenticatable implements JWTSubject
     }
 
     // Tambahkan di dalam class User:
-    public function laporan(): HasMany
+    public function laporan(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Laporan::class);
+        return $this->hasMany(\App\Models\Laporan::class, 'user_id');
     }
 }

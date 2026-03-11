@@ -27,6 +27,8 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
         Route::get('/me',       [AuthController::class, 'me']);
     });
 
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+
     // ── User Management (hanya Admin) ──
     Route::middleware('role:admin')->prefix('users')->group(function () {
         Route::get('/',           [UserController::class, 'index']);
@@ -40,6 +42,9 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
     // ── Laporan — akan diisi di Step berikutnya ──
     // ── Laporan ──
     Route::prefix('laporan')->group(function () {
+        // ── Ekspor CSV — Admin & Pimpinan saja ──
+        Route::middleware('role:admin,pimpinan')
+            ->get('/ekspor', [DashboardController::class, 'ekspor']);
 
         // Semua role bisa lihat & buat laporan
         Route::get('/',    [LaporanController::class, 'index']);
@@ -56,8 +61,7 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
     });
 
     // ── Dashboard — Admin, Koordinator, Pimpinan ──
-    Route::middleware('role:admin,koordinator,pimpinan')
-         ->prefix('dashboard')
+    Route::prefix('dashboard')
          ->group(function () {
              Route::get('/ringkasan',          [DashboardController::class, 'ringkasan']);
              Route::get('/tren-mingguan',      [DashboardController::class, 'trenMingguan']);
@@ -66,9 +70,5 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
              Route::get('/tingkat-selesai',    [DashboardController::class, 'tingkatSelesai']);
              Route::get('/aktivitas-petugas',  [DashboardController::class, 'aktivitasPetugas']);
          });
-
-    // ── Ekspor CSV — Admin & Pimpinan saja ──
-    Route::middleware('role:admin,pimpinan')
-         ->get('/laporan/ekspor', [DashboardController::class, 'ekspor']);
 
 });
