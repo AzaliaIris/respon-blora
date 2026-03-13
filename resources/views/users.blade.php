@@ -128,11 +128,11 @@
           <thead>
             <tr>
               <th>Nama</th><th>Username</th><th>NIP</th><th>Role</th>
-              <th>Wilayah Tugas</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th>
+              <th>Posisi</th><th>Wilayah Tugas</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th>
             </tr>
           </thead>
           <tbody id="users-tbody">
-            <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-400)">Memuat data...</td></tr>
+            <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--gray-400)">Memuat data...</td></tr>
           </tbody>
         </table>
         </div>
@@ -196,9 +196,20 @@
         <input type="text" class="form-control" id="u-phone" placeholder="08xxxxxxxxxx">
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Wilayah Tugas</label>
-      <input type="text" class="form-control" id="u-wilayah" placeholder="Contoh: Kecamatan Cepu">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Wilayah Tugas</label>
+        <input type="text" class="form-control" id="u-wilayah" placeholder="Contoh: Kecamatan Cepu">
+      </div>
+      <div class="form-group" id="grp-posisi" style="display:none">
+        <label class="form-label">Posisi</label>
+        <select class="form-control" id="u-posisi">
+          <option value="">-- Tidak ada --</option>
+          <option value="pml">PML</option>
+          <option value="taskforce">Taskforce</option>
+          <option value="subject_matter">Subject Matter (Ketua Tim)</option>
+        </select>
+      </div>
     </div>
     <input type="hidden" id="u-id">
     <div style="display:flex;gap:10px;margin-top:16px">
@@ -222,7 +233,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   let allUsers = [];
 
   if (user) {
@@ -270,7 +281,7 @@
 
     if (allUsers.length === 0) {
       document.getElementById('users-tbody').innerHTML =
-        `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--gray-400)">Tidak ada user ditemukan.</td></tr>`;
+        `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--gray-400)">Tidak ada user ditemukan.</td></tr>`;
       document.getElementById('users-pagination').innerHTML = '';
       return;
     }
@@ -289,6 +300,7 @@
         <td><span style="font-family:monospace;font-size:12px;color:var(--blue)">${u.username}</span></td>
         <td style="font-size:12px;color:var(--gray-500)">${u.nip||'—'}</td>
         <td><span class="role-badge role-${u.role}">${Fmt.roleLabel(u.role)}</span></td>
+        <td style="font-size:12px">${u.role==='petugas' ? (Fmt.posisiLabel(u.posisi)) : '—'}</td>
         <td style="font-size:12px">${u.wilayah_tugas||'—'}</td>
         <td><span class="pill ${u.is_active?'pill-selesai':'pill-ditutup'}">${u.is_active?'Aktif':'Nonaktif'}</span></td>
         <td style="font-size:12px;color:var(--gray-400)">${Fmt.date(u.last_login_at)}</td>
@@ -337,6 +349,10 @@
     document.getElementById('pass-hint').textContent       = '';
     document.getElementById('pass-req').style.display      = '';
     document.getElementById('passconf-req').style.display  = '';
+    document.getElementById('u-role').value = 'petugas';
+    document.getElementById('u-id').value   = '';
+    document.getElementById('u-posisi').value    = '';         // ← tambah
+    document.getElementById('grp-posisi').style.display = '';  // ← tambah (petugas = default)
     Modal.show('modal-user');
   }
 
@@ -359,6 +375,9 @@
     document.getElementById('pass-hint').textContent    = 'Kosongkan jika tidak ingin ganti password';
     document.getElementById('pass-req').style.display      = 'none';
     document.getElementById('passconf-req').style.display  = 'none';
+    document.getElementById('u-role').value     = u.role;
+    document.getElementById('u-posisi').value   = u.posisi || '';           // ← tambah
+    document.getElementById('grp-posisi').style.display = u.role === 'petugas' ? '' : 'none'; // ← tambah
     Modal.show('modal-user');
   }
 
@@ -383,6 +402,7 @@
       email:         document.getElementById('u-email').value.trim()   || null,
       phone:         document.getElementById('u-phone').value.trim()   || null,
       wilayah_tugas: document.getElementById('u-wilayah').value.trim() || null,
+      posisi:        role === 'petugas' ? (document.getElementById('u-posisi').value || null) : null,
     };
     if (!isEdit || password) {
       payload.password = password;
@@ -410,6 +430,18 @@
     };
     Modal.show('modal-confirm');
   }
+
+  // Tambah sebelum window.loadUsers:
+  Fmt.posisiLabel = (p) => {
+    const m = { pml:'PML', taskforce:'Taskforce', subject_matter:'Subject Matter' };
+    return p ? `<span class="pill" style="background:rgba(234,179,8,0.1);color:#92400E;font-weight:700">${m[p]||p}</span>` : '—';
+  };
+
+  document.getElementById('u-role').addEventListener('change', function() {
+    const grp = document.getElementById('grp-posisi');
+    grp.style.display = this.value === 'petugas' ? '' : 'none';
+    if (this.value !== 'petugas') document.getElementById('u-posisi').value = '';
+  });
 
   window.loadUsers       = loadUsers;
   window.renderUsersPage = renderUsersPage;

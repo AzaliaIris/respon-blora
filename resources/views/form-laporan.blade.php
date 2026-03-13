@@ -260,27 +260,6 @@
                 </div>
               </label>
               <label class="kendala-opt">
-                <input type="radio" name="kendala" value="alasan_privasi">
-                <div class="kendala-box">
-                  <div class="kendala-box-icon">🔒</div>
-                  <div class="kendala-box-text">Alasan Privasi</div>
-                </div>
-              </label>
-              <label class="kendala-opt">
-                <input type="radio" name="kendala" value="usaha_tutup">
-                <div class="kendala-box">
-                  <div class="kendala-box-icon">🏚️</div>
-                  <div class="kendala-box-text">Usaha Tutup</div>
-                </div>
-              </label>
-              <label class="kendala-opt">
-                <input type="radio" name="kendala" value="tidak_ada_waktu">
-                <div class="kendala-box">
-                  <div class="kendala-box-icon">⏰</div>
-                  <div class="kendala-box-text">Tidak Ada Waktu</div>
-                </div>
-              </label>
-              <label class="kendala-opt">
                 <input type="radio" name="kendala" value="lainnya">
                 <div class="kendala-box">
                   <div class="kendala-box-icon">📌</div>
@@ -343,7 +322,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   let fotoFiles = [];
 
   if (user) {

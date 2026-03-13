@@ -68,7 +68,13 @@
     background: var(--gray-800); color: white;
     font-size: 11px; font-weight: 600;
     padding: 3px 8px; border-radius: 4px;
-    white-space: nowrap; z-index: 10;
+    white-space: nowrap; z-index: 999;
+    pointer-events: none;
+  }
+
+  .bar-seg:hover {
+    z-index: 998;
+    position: relative;
   }
   .bar-label { font-size: 9.5px; color: var(--gray-400); font-weight: 500; margin-top: 6px; text-align: center; white-space: nowrap; }
   .chart-legend { display: flex; gap: 14px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
@@ -231,7 +237,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   if (user) {
     Sidebar.render('/dashboard');
     buildTopbar('Dashboard', 'Beranda');

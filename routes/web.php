@@ -18,5 +18,6 @@ Route::get('/monitoring',   fn () => view('monitoring'));
 Route::get('/petugas',      fn () => view('petugas'));
 Route::get('/users',        fn () => view('users'));
 Route::get('/profil',       fn () => view('profil'));
+Route::get('/laporan-mitra', fn () => view('form-mitra'));
 
 Route::fallback(fn () => redirect('/login'));

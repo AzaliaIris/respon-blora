@@ -45,6 +45,7 @@ class UserController extends Controller
             'nip'           => 'nullable|string|max:30',
             'phone'         => 'nullable|string|max:20',
             'wilayah_tugas' => 'nullable|string|max:100',
+            'posisi' => 'nullable|in:pml,taskforce,subject_matter',
         ]);
 
         if ($validator->fails()) {
@@ -60,6 +61,7 @@ class UserController extends Controller
             'nip'           => $request->nip,
             'phone'         => $request->phone,
             'wilayah_tugas' => $request->wilayah_tugas,
+            'posisi' => $request->posisi,
         ]);
 
         return $this->successResponse('User berhasil dibuat', $user, 201);
@@ -92,13 +94,14 @@ class UserController extends Controller
             'nip'           => 'sometimes|nullable|string|max:30',
             'phone'         => 'sometimes|nullable|string|max:20',
             'wilayah_tugas' => 'sometimes|nullable|string|max:100',
+            'posisi' => 'nullable|in:pml,taskforce,subject_matter',
         ]);
 
         if ($validator->fails()) {
             return $this->errorResponse('Validasi gagal', 422, $validator->errors());
         }
 
-        $data = $request->only(['name', 'email', 'role', 'nip', 'phone', 'wilayah_tugas']);
+        $data = $request->only(['name', 'email', 'role', 'nip', 'phone', 'wilayah_tugas','posisi']);
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);

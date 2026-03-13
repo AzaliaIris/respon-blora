@@ -229,7 +229,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   if (user) {
     if (!['admin','koordinator','pimpinan'].includes(user.role)) {
       window.location.href = '/dashboard';

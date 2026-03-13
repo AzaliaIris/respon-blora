@@ -1,18 +1,47 @@
 <?php
 
+use Illuminate\Http\Request;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotifikasiController;
+use App\Http\Controllers\Api\LaporanMitraController;
 use Illuminate\Support\Facades\Route;
 
 // ═══════════════════════════════════════
 // PUBLIC ROUTES — Tidak butuh token
 // ═══════════════════════════════════════
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:10,5')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login',    [AuthController::class, 'login']);
+});
+
+Route::post('/laporan/mitra', [LaporanMitraController::class, 'store'])
+     ->middleware('throttle:5,10'); // backup throttle Laravel
+
+Route::get('/publik/ketua-tim', function () {
+    $petugas = \App\Models\User::where('role', 'petugas')
+        ->whereIn('posisi', ['pml', 'subject_matter'])
+        ->where('is_active', true)
+        ->select('id', 'name', 'posisi', 'wilayah_tugas')
+        ->orderBy('name')
+        ->get();
+    return response()->json(['success' => true, 'data' => $petugas]);
+});
+
+Route::get('/publik/petugas-posisi', function (Request $request) {
+    $posisi = $request->query('posisi');
+    if (!in_array($posisi, ['pml', 'subject_matter'])) {
+        return response()->json(['success' => false, 'message' => 'Posisi tidak valid'], 422);
+    }
+    $data = \App\Models\User::where('role', 'petugas')
+        ->where('posisi', $posisi)
+        ->where('is_active', true)
+        ->select('id', 'name', 'wilayah_tugas')
+        ->orderBy('name')
+        ->get();
+    return response()->json(['success' => true, 'data' => $data]);
 });
 
 // ═══════════════════════════════════════

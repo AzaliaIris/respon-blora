@@ -81,6 +81,11 @@ class AuthController extends Controller
 
         // Cek apakah user ada, aktif, dan password cocok
         if (!$user || !Hash::check($request->password, $user->password)) {
+            \Log::warning('Login gagal', [
+                'username' => $request->username,
+                'ip'       => $request->ip(),
+                'at'       => now(),
+            ]);
             return $this->errorResponse('Username atau password salah', 401);
         }
 
@@ -158,6 +163,8 @@ class AuthController extends Controller
             'nip'           => $user->nip,
             'phone'         => $user->phone,
             'wilayah_tugas' => $user->wilayah_tugas,
+            'posisi'        => $user->posisi,       // ← tambah
+            'is_active'     => (bool) $user->is_active,
             'last_login_at' => $user->last_login_at?->toDateTimeString(),
         ];
     }

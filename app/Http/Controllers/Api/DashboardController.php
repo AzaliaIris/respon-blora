@@ -22,8 +22,13 @@ class DashboardController extends Controller
             $wilayah = preg_replace('/^kecamatan\s+/i', '', trim($user->wilayah_tugas));
             $query->where('kecamatan', 'like', '%' . $wilayah . '%');
         } elseif ($user->role === 'petugas') {
-            // Petugas hanya lihat laporan milik sendiri
-            $query->where('user_id', $user->id);
+            $query->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)
+                ->orWhere('ditugaskan_ke', $user->id);
+                if ($user->posisi === 'taskforce') {
+                    $q->orWhere('arahan_tindak_lanjut', 'ke_taskforce');
+                }
+            });
         }
         // admin & pimpinan: tidak ada filter, lihat semua
     }

@@ -121,7 +121,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   let allData = [];
 
   if (user) {

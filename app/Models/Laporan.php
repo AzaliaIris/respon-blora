@@ -33,6 +33,12 @@ class Laporan extends Model
         'tanggal_verifikasi',
         'tanggal_selesai',
         'diverifikasi_oleh',
+        'nama_mitra', 
+        'id_mitra', 
+        'phone_mitra', 
+        'ketua_tim', 
+        'sumber',
+        'ditugaskan_ke',
     ];
 
     protected $casts = [

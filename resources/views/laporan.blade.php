@@ -181,12 +181,23 @@
     <div class="modal-desc">Tentukan arahan tindak lanjut untuk laporan ini.</div>
     <div class="form-group">
       <label class="form-label">Arahan Tindak Lanjut <span class="req">*</span></label>
-      <select class="form-control" id="inp-arahan">
+      <select class="form-control" id="inp-arahan" onchange="onArahanChange()">
         <option value="">-- Pilih Arahan --</option>
         <option value="ke_pml">Ke PML</option>
-        <option value="ke_taskforce">Ke Taskforce</option>
+        <option value="ke_taskforce">Ke Taskforce (semua)</option>
         <option value="ke_subject_matter">Ke Subject Matter</option>
       </select>
+    </div>
+    <!-- Dropdown petugas — muncul kalau pilih PML atau Subject Matter -->
+    <div class="form-group" id="wrap-ditugaskan" style="display:none">
+      <label class="form-label">Pilih Petugas <span class="req">*</span></label>
+      <select class="form-control" id="inp-ditugaskan">
+        <option value="">-- Memuat daftar petugas... --</option>
+      </select>
+    </div>
+    <!-- Info taskforce -->
+    <div id="info-taskforce" style="display:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px;font-size:13px;color:#1D4ED8;margin-bottom:12px">
+      ℹ️ Semua petugas dengan posisi <strong>Taskforce</strong> akan mendapatkan tugas tindak lanjut ini.
     </div>
     <div class="form-group">
       <label class="form-label">Catatan Admin</label>
@@ -232,7 +243,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   let allData = [], currentPage = 1;
 
   if (user) {
@@ -303,7 +314,7 @@
       return `<tr>
         <td><span class="ticket-code">${l.nomor_tiket}</span></td>
         <td><div class="nama-usaha-cell" title="${l.nama_usaha}">${l.nama_usaha}</div></td>
-        <td><div class="petugas-cell">${l.petugas?.name || '—'}</div></td>
+        <td><div class="petugas-cell">${l.sumber === 'mitra' ? (l.nama_mitra || '—') : (l.petugas?.name || '—')}</div></td>
         <td>${l.kecamatan}</td>
         <td style="font-size:12px">${Fmt.kendalaLabel(l.jenis_kendala)}</td>
         <td><span class="pill pill-${l.status}">${Fmt.statusLabel(l.status)}</span></td>
@@ -366,10 +377,17 @@
       </div>
 
       <div class="detail-section">
-        <div class="detail-section-title">👤 Petugas</div>
-        <div class="detail-row"><span class="detail-key">Nama</span><span class="detail-val">${l.petugas?.name || '—'}</span></div>
-        <div class="detail-row"><span class="detail-key">NIP</span><span class="detail-val">${l.petugas?.nip || '—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Wilayah Tugas</span><span class="detail-val">${l.petugas?.wilayah_tugas || '—'}</span></div>
+        <div class="detail-section-title">👤 ${l.sumber === 'mitra' ? 'Identitas Mitra' : 'Petugas'}</div>
+        ${l.sumber === 'mitra' ? `
+          <div class="detail-row"><span class="detail-key">Nama Mitra</span><span class="detail-val">${l.nama_mitra || '—'}</span></div>
+          <div class="detail-row"><span class="detail-key">ID Mitra</span><span class="detail-val">${l.id_mitra || '—'}</span></div>
+          <div class="detail-row"><span class="detail-key">No. HP</span><span class="detail-val">${l.phone_mitra || '—'}</span></div>
+          <div class="detail-row"><span class="detail-key">Ketua Tim</span><span class="detail-val">${l.ketua_tim || '—'}</span></div>
+        ` : `
+          <div class="detail-row"><span class="detail-key">Nama</span><span class="detail-val">${l.petugas?.name || '—'}</span></div>
+          <div class="detail-row"><span class="detail-key">NIP</span><span class="detail-val">${l.petugas?.nip || '—'}</span></div>
+          <div class="detail-row"><span class="detail-key">Wilayah Tugas</span><span class="detail-val">${l.petugas?.wilayah_tugas || '—'}</span></div>
+        `}
         <div class="detail-row"><span class="detail-key">Tanggal Lapor</span><span class="detail-val">${Fmt.datetime(l.tanggal_laporan)}</span></div>
       </div>
 
@@ -414,16 +432,54 @@
     document.getElementById('verif-id').value = id;
     document.getElementById('inp-arahan').value = '';
     document.getElementById('inp-catatan').value = '';
+    document.getElementById('wrap-ditugaskan').style.display = 'none';
+    document.getElementById('info-taskforce').style.display = 'none';
     Modal.show('modal-verif');
   }
+
+  async function onArahanChange() {
+    const arahan = document.getElementById('inp-arahan').value;
+    const wrapDitugaskan = document.getElementById('wrap-ditugaskan');
+    const infoTaskforce  = document.getElementById('info-taskforce');
+    const selDitugaskan  = document.getElementById('inp-ditugaskan');
+
+    wrapDitugaskan.style.display = 'none';
+    infoTaskforce.style.display  = 'none';
+    selDitugaskan.innerHTML = '<option value="">-- Memuat... --</option>';
+
+    if (arahan === 'ke_taskforce') {
+      infoTaskforce.style.display = 'block';
+    } else if (arahan === 'ke_pml' || arahan === 'ke_subject_matter') {
+      wrapDitugaskan.style.display = 'block';
+      const posisi = arahan === 'ke_pml' ? 'pml' : 'subject_matter';
+      const res = await fetch(`/api/publik/petugas-posisi?posisi=${posisi}`);
+      const data = await res.json();
+      selDitugaskan.innerHTML = '<option value="">-- Pilih Petugas --</option>';
+      (data.data || []).forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.name + (p.wilayah_tugas ? ` — ${p.wilayah_tugas}` : '');
+        selDitugaskan.appendChild(o);
+      });
+    }
+  }
+  window.onArahanChange = onArahanChange;
 
   async function submitVerifikasi() {
     const id      = document.getElementById('verif-id').value;
     const arahan  = document.getElementById('inp-arahan').value;
     const catatan = document.getElementById('inp-catatan').value;
-    if (!arahan) { Toast.show('Pilih arahan tindak lanjut.', 'error'); return; }
+    const ditugaskan = document.getElementById('inp-ditugaskan')?.value || null;
 
-    const res = await Api.patch(`/laporan/${id}/verifikasi`, { arahan_tindak_lanjut: arahan, catatan_admin: catatan });
+    if (!arahan) { Toast.show('Pilih arahan tindak lanjut.', 'error'); return; }
+    if ((arahan === 'ke_pml' || arahan === 'ke_subject_matter') && !ditugaskan) {
+      Toast.show('Pilih petugas yang ditugaskan.', 'error'); return;
+    }
+
+    const payload = { arahan_tindak_lanjut: arahan, catatan_admin: catatan };
+    if (ditugaskan) payload.ditugaskan_ke = parseInt(ditugaskan);
+
+    const res = await Api.patch(`/laporan/${id}/verifikasi`, payload);
     if (!res?.ok) { Toast.show(res?.data?.message || 'Gagal verifikasi.', 'error'); return; }
 
     Modal.hide('modal-verif');

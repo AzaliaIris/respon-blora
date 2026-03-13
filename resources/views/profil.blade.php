@@ -216,6 +216,10 @@
                 <div class="info-label">Wilayah Tugas</div>
                 <div class="info-val" id="inf-wilayah">—</div>
               </div>
+              <div class="info-row" id="row-posisi" style="display:none">
+                <div class="info-label">Posisi</div>
+                <div class="info-val" id="inf-posisi">—</div>
+              </div>
               <div class="info-row">
                 <div class="info-label">Status Akun</div>
                 <div class="info-val" id="inf-status">—</div>
@@ -295,7 +299,7 @@
 </div>
 
 <script type="module">
-  const user = Auth.check();
+  const user = requireAuth();
   let profileData = null;
 
   if (user) {
@@ -328,17 +332,27 @@
 
     document.getElementById('av-role-pill').innerHTML =
       `<span class="pill" style="background:${color}22;color:${color};font-weight:700">${roleLabel}</span>`;
+    const aktif = !!Number(p.is_active);
     document.getElementById('av-status-pill').className =
-      'pill ' + (p.is_active ? 'pill-selesai' : 'pill-ditutup');
-    document.getElementById('av-status-pill').textContent = p.is_active ? 'Aktif' : 'Nonaktif';
+      'pill ' + (aktif ? 'pill-selesai' : 'pill-ditutup');
+    document.getElementById('av-status-pill').textContent = aktif ? 'Aktif' : 'Nonaktif';
 
     // Info akun (read-only)
     document.getElementById('inf-name').textContent     = p.name;
     document.getElementById('inf-username').textContent = p.username;
     document.getElementById('inf-role').innerHTML       = `<span class="pill" style="background:${color}22;color:${color};font-weight:700">${roleLabel}</span>`;
     document.getElementById('inf-wilayah').textContent  = p.wilayah_tugas || '—';
-    document.getElementById('inf-status').innerHTML     =
-      `<span class="pill ${p.is_active?'pill-selesai':'pill-ditutup'}">${p.is_active?'Aktif':'Nonaktif'}</span>`;
+    // Posisi — hanya tampil kalau role petugas
+    const posisiMap = { pml:'PML', taskforce:'Taskforce', subject_matter:'Subject Matter' };
+    const rowPosisi = document.getElementById('row-posisi');
+    if (p.role === 'petugas' && p.posisi) {
+      document.getElementById('inf-posisi').textContent = posisiMap[p.posisi] || p.posisi;
+      rowPosisi.style.display = '';
+    } else {
+      rowPosisi.style.display = 'none';
+    }
+    document.getElementById('inf-status').innerHTML =
+      `<span class="pill ${aktif?'pill-selesai':'pill-ditutup'}">${aktif?'Aktif':'Nonaktif'}</span>`;
 
     // Form kontak
     document.getElementById('f-nip').value   = p.nip   || '';

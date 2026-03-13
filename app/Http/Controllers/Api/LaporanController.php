@@ -28,11 +28,23 @@ class LaporanController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user  = JWTAuth::parseToken()->authenticate();
-        $query = Laporan::with(['petugas:id,name,username,wilayah_tugas', 'foto']);
+        $query = Laporan::with(['petugas:id,name,username,wilayah_tugas', 'foto'])
+                ->select('id','nomor_tiket','user_id','nama_usaha','kecamatan',
+                         'jenis_kendala','status','tanggal_laporan',
+                         'sumber','nama_mitra','id_mitra','phone_mitra','ketua_tim');
 
         // Petugas hanya lihat laporan sendiri
         if ($user->role === 'petugas') {
-            $query->where('user_id', $user->id);
+            $query->where(function($q) use ($user) {
+                $q->where('user_id', $user->id)
+                ->orWhere('ditugaskan_ke', $user->id)
+                ->orWhere(function($q2) use ($user) {
+                    // Taskforce: lihat semua laporan yang arahan ke_taskforce
+                    if ($user->posisi === 'taskforce') {
+                        $q2->where('arahan_tindak_lanjut', 'ke_taskforce');
+                    }
+                });
+            });
         }
 
         if ($user->role === 'koordinator') {
@@ -72,16 +84,6 @@ class LaporanController extends Controller
     // ─────────────────────────────────────────────
     public function store(Request $request): JsonResponse
     {
-        // return response()->json([
-        //     'all_data'  => $request->all(),
-        //     'has_file'  => $request->hasFile('foto'),
-        //     'files_raw' => $request->files->all(), // <-- tambah ini
-        //     'foto_type' => gettype($request->file('foto')),
-        //     'foto_0'    => $request->file('foto.0') 
-        //                 ? get_class($request->file('foto.0')) 
-        //                 : 'null',
-        // ]);
-
         $validator = Validator::make($request->all(), [
             'nama_usaha'             => 'required|string|max:200',
             'nama_pemilik'           => 'nullable|string|max:100',
@@ -90,21 +92,10 @@ class LaporanController extends Controller
             'desa_kelurahan'         => 'nullable|string|max:100',
             'latitude'               => 'nullable|numeric|between:-90,90',
             'longitude'              => 'nullable|numeric|between:-180,180',
-            'jenis_kendala'          => 'required|in:menolak_diwawancara,tidak_ditemui,alasan_privasi,usaha_tutup,responden_pindah,tidak_ada_waktu,lainnya',
+            'jenis_kendala'          => 'required|in:menolak_diwawancara,tidak_ditemui,lainnya',
             'jenis_kendala_lainnya'  => 'required_if:jenis_kendala,lainnya|nullable|string|max:200',
             'kronologi'              => 'required|string|min:20|max:2000',
             'foto'                   => 'nullable|array|max:5',
-            // 'foto.*' => [
-            //     'file',
-            //     'max:5120',
-            //     function ($attribute, $value, $fail) {
-            //         $extension = strtolower($value->getClientOriginalExtension());
-            //         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-            //         if (!in_array($extension, $allowed)) {
-            //             $fail("The {$attribute} must be a file of type: jpg, jpeg, png, webp.");
-            //         }
-            //     }
-            // ],
             'foto.*' => [
                 'file',
                 function ($attribute, $value, $fail) {
@@ -119,18 +110,6 @@ class LaporanController extends Controller
                 }
             ],
         ]);
-
-        // return response()->json([
-        //     'fails' => $validator->fails(),
-        //     'errors' => $validator->errors(),
-        //     'foto_files' => collect($request->file('foto'))->map(fn($f) => [
-        //         'name'      => $f->getClientOriginalName(),
-        //         'mime'      => $f->getMimeType(),
-        //         'extension' => $f->getClientOriginalExtension(),
-        //         'size'      => $f->getSize(),
-        //         'valid'     => $f->isValid(),
-        //     ])
-        // ]);
 
         if ($validator->fails()) {
             return $this->errorResponse('Validasi gagal', 422, $validator->errors());
@@ -180,26 +159,6 @@ class LaporanController extends Controller
                     ]);
                 }
             }
-            // if ($request->hasFile('foto')) {
-            //     foreach ($request->file('foto') as $index => $file) {
-            //         // Ambil ekstensi dari nama file asli, bukan dari MIME
-            //         $extension = strtolower($file->getClientOriginalExtension());
-            //         $filename  = \Str::random(40) . '.' . $extension;
-            //         $directory = 'laporan/' . now()->format('Y/m');
-
-            //         // Simpan dengan nama + ekstensi yang benar
-            //         $path = $file->storeAs($directory, $filename, 'public');
-
-            //         LaporanFoto::create([
-            //             'laporan_id'     => $laporan->id,
-            //             'path_foto'      => $path,
-            //             'nama_file_asli' => $file->getClientOriginalName(),
-            //             'latitude'       => $request->input("foto_latitude.{$index}"),
-            //             'longitude'      => $request->input("foto_longitude.{$index}"),
-            //             'urutan'         => $index + 1,
-            //         ]);
-            //     }
-            // }
 
             DB::commit();
 
@@ -237,10 +196,16 @@ class LaporanController extends Controller
         }
 
         // Petugas hanya boleh lihat laporan milik sendiri
-        if ($user->role === 'petugas' && $laporan->user_id !== $user->id) {
-            return $this->errorResponse('Anda tidak berhak mengakses laporan ini', 403);
-        }
+        if ($user->role === 'petugas') {
+            $boleh = $laporan->user_id === $user->id
+                || $laporan->ditugaskan_ke === $user->id
+                || ($user->posisi === 'taskforce' && $laporan->arahan_tindak_lanjut === 'ke_taskforce');
 
+            if (!$boleh) {
+                return $this->errorResponse('Anda tidak berhak mengakses laporan ini', 403);
+            }
+        }
+        
         // Tambahkan label ke response
         $data               = $laporan->toArray();
         $data['jenis_kendala_label'] = $laporan->jenis_kendala_label;
@@ -256,6 +221,7 @@ class LaporanController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'arahan_tindak_lanjut' => 'required|in:ke_pml,ke_taskforce,ke_subject_matter',
+            'ditugaskan_ke'        => 'nullable|integer|exists:users,id',
             'catatan_admin'        => 'nullable|string|max:1000',
         ]);
 
@@ -263,16 +229,16 @@ class LaporanController extends Controller
             return $this->errorResponse('Validasi gagal', 422, $validator->errors());
         }
 
-        $laporan = Laporan::find($id);
-        if (!$laporan) {
-            return $this->errorResponse('Laporan tidak ditemukan', 404);
+        // Validasi: PML & Subject Matter wajib pilih user
+        if (in_array($request->arahan_tindak_lanjut, ['ke_pml', 'ke_subject_matter'])
+            && !$request->ditugaskan_ke) {
+            return $this->errorResponse('Pilih petugas yang ditugaskan.', 422);
         }
 
+        $laporan = Laporan::find($id);
+        if (!$laporan) return $this->errorResponse('Laporan tidak ditemukan', 404);
         if ($laporan->status !== 'menunggu') {
-            return $this->errorResponse(
-                'Laporan ini sudah diverifikasi sebelumnya. Status: ' . $laporan->status,
-                409
-            );
+            return $this->errorResponse('Laporan sudah diverifikasi. Status: ' . $laporan->status, 409);
         }
 
         $user = JWTAuth::parseToken()->authenticate();
@@ -280,6 +246,7 @@ class LaporanController extends Controller
         $laporan->update([
             'status'                => 'diverifikasi',
             'arahan_tindak_lanjut'  => $request->arahan_tindak_lanjut,
+            'ditugaskan_ke'         => $request->ditugaskan_ke ?? null,
             'catatan_admin'         => $request->catatan_admin,
             'tanggal_verifikasi'    => now(),
             'diverifikasi_oleh'     => $user->id,
@@ -321,10 +288,26 @@ class LaporanController extends Controller
         $user = JWTAuth::parseToken()->authenticate();
 
         // Petugas hanya bisa tindak lanjuti laporan sendiri
-        if ($user->role === 'petugas' && $laporan->user_id !== $user->id) {
-            return $this->errorResponse('Anda tidak berhak menindaklanjuti laporan ini', 403);
-        }
+        if ($user->role === 'petugas') {
+            $arahan = $laporan->arahan_tindak_lanjut;
 
+            if ($arahan === 'ke_taskforce') {
+                // Semua taskforce boleh
+                if ($user->posisi !== 'taskforce') {
+                    return $this->errorResponse('Laporan ini ditugaskan ke Taskforce.', 403);
+                }
+            } elseif (in_array($arahan, ['ke_pml', 'ke_subject_matter'])) {
+                // Hanya petugas yang ditugaskan
+                if ($laporan->ditugaskan_ke !== $user->id) {
+                    return $this->errorResponse('Anda tidak ditugaskan untuk laporan ini.', 403);
+                }
+            } else {
+                // Fallback: hanya pembuat laporan
+                if ($laporan->user_id !== $user->id) {
+                    return $this->errorResponse('Anda tidak berhak menindaklanjuti laporan ini.', 403);
+                }
+            }
+        }
         DB::beginTransaction();
         try {
             // Simpan riwayat tindak lanjut

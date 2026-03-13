@@ -413,6 +413,33 @@ async function markAllRead() {
   await loadNotifikasi();
 }
 
+// ── Page Guard ──
+function requireAuth() {
+  const user  = Auth.getUser();
+  const token = Auth.getToken();
+
+  if (!user || !token) {
+    sessionStorage.setItem('rb_redirect_msg', 'Anda harus login terlebih dahulu.');
+    window.location.href = '/login';
+    return null;
+  }
+
+  // Cek expiry JWT
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      Auth.clear();
+      sessionStorage.setItem('rb_redirect_msg', 'Sesi Anda telah berakhir. Silakan login kembali.');
+      window.location.href = '/login';
+      return null;
+    }
+  } catch(e) {}
+
+  return user;
+}
+
+window.requireAuth = requireAuth;
+
 // Expose ke global scope agar bisa diakses dari script inline Blade
 window.Auth   = Auth;
 window.Api    = Api;

@@ -165,7 +165,7 @@
 
   .eye-toggle:hover { color: var(--gray-600); }
 
-  .demo-chips {
+  /* .demo-chips {
     background: var(--gray-50);
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-sm);
@@ -182,7 +182,7 @@
     letter-spacing: 0.06em;
   }
 
-  .demo-chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .demo-chips-row { display: flex; flex-wrap: wrap; gap: 6px; } */
 
   .chip {
     padding: 4px 12px;
@@ -309,7 +309,7 @@
     </div>
   </div>
 
-  <div class="demo-chips">
+  <!-- <div class="demo-chips">
     <div class="demo-chips-title">🧪 Demo — klik untuk isi otomatis</div>
     <div class="demo-chips-row">
       <button class="chip" style="background:#0B1F3A" onclick="demo('admin_blora')">admin_blora</button>
@@ -317,7 +317,7 @@
       <button class="chip" style="background:#0D9488" onclick="demo('koord_cepu')">koord_cepu</button>
       <button class="chip" style="background:#059669" onclick="demo('budi_ppl01')">budi_ppl01</button>
     </div>
-  </div>
+  </div> -->
 
   <button class="btn-login" id="btn-login" onclick="doLogin()">
     <span id="btn-text">Masuk ke Sistem →</span>
@@ -336,11 +336,19 @@
     window.location.href = '/dashboard';
   }
 
-  function demo(username) {
-    document.getElementById('inp-username').value = username;
-    document.getElementById('inp-password').value = 'Admin@1234';
-    document.getElementById('alert-box').classList.remove('show');
+  // Cek apakah ada pesan redirect
+  const redirectMsg = sessionStorage.getItem('rb_redirect_msg');
+  if (redirectMsg) {
+    document.getElementById('alert-msg').textContent = redirectMsg;
+    document.getElementById('alert-box').className = 'alert-box alert-error show';
+    sessionStorage.removeItem('rb_redirect_msg');
   }
+
+  // function demo(username) {
+  //   document.getElementById('inp-username').value = username;
+  //   document.getElementById('inp-password').value = 'Admin@1234';
+  //   document.getElementById('alert-box').classList.remove('show');
+  // }
 
   function toggleEye() {
     const inp = document.getElementById('inp-password');

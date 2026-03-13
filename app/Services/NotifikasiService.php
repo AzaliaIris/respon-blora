@@ -66,5 +66,30 @@ class NotifikasiService
                 'tipe'       => $c['tipe'],
                 'laporan_id' => $laporan->id,
             ]));
+
+        // Notif ke petugas yang ditugaskan (PML/Subject Matter)
+        if ($laporan->ditugaskan_ke && $laporan->ditugaskan_ke !== $laporan->user_id && $statusBaru === 'diverifikasi') {
+            Notifikasi::create([
+                'user_id'    => $laporan->ditugaskan_ke,
+                'judul'      => 'Anda Mendapat Tugas Tindak Lanjut',
+                'pesan'      => "Laporan #{$laporan->nomor_tiket} ({$laporan->nama_usaha}) ditugaskan kepada Anda untuk ditindaklanjuti.",
+                'tipe'       => 'tugas',
+                'laporan_id' => $laporan->id,
+            ]);
+        }
+
+        // Notif ke semua Taskforce jika arahan ke_taskforce
+        if ($laporan->arahan_tindak_lanjut === 'ke_taskforce' && $statusBaru === 'diverifikasi') {
+            User::where('posisi', 'taskforce')
+                ->where('is_active', true)
+                ->pluck('id')
+                ->each(fn($uid) => Notifikasi::create([
+                    'user_id'    => $uid,
+                    'judul'      => 'Tugas Tindak Lanjut Taskforce',
+                    'pesan'      => "Laporan #{$laporan->nomor_tiket} ({$laporan->nama_usaha}) memerlukan tindak lanjut dari tim Taskforce.",
+                    'tipe'       => 'tugas',
+                    'laporan_id' => $laporan->id,
+                ]));
+        }
     }
 }
