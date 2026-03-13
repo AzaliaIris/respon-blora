@@ -231,6 +231,7 @@
     }
     Sidebar.render('/users');
     buildTopbar('Kelola User', 'Manajemen → Kelola User');
+    loadNotifikasi();
     Modal.init('modal-user');
     Modal.init('modal-confirm');
     loadUsers();

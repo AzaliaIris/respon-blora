@@ -235,6 +235,7 @@
   if (user) {
     Sidebar.render('/dashboard');
     buildTopbar('Dashboard', 'Beranda');
+    loadNotifikasi();
 
     const descs = {
       admin: 'Ringkasan laporan kendala pendataan. Segera verifikasi laporan yang masuk.',

@@ -112,7 +112,11 @@
         <select class="filter-select" id="f-kecamatan" onchange="loadLaporan()">
           <option value="">Semua Kecamatan</option>
           <option>Blora</option><option>Cepu</option><option>Jepon</option>
-          <option>Randublatung</option><option>Kunduran</option>
+                  <option>Randublatung</option><option>Kunduran</option><option>Ngawen</option>
+                  <option>Bogorejo</option><option>Todanan</option><option>Japah</option>
+                  <option>Banjarejo</option><option>Jati</option><option>Jiken</option>
+                  <option>Kedungtuban</option><option>Kradenan</option><option>Sambong</option>
+                  <option>Tunjungan</option>
         </select>
         <select class="filter-select" id="f-kendala" onchange="loadLaporan()">
           <option value="">Semua Kendala</option>
@@ -234,6 +238,7 @@
   if (user) {
     Sidebar.render('/laporan');
     buildTopbar('Daftar Laporan', 'Laporan');
+    loadNotifikasi();
     Modal.init('modal-verif');
     Modal.init('modal-tl');
 

@@ -301,6 +301,7 @@
   if (user) {
     Sidebar.render('/profil');
     buildTopbar('Profil Saya', 'Profil');
+    loadNotifikasi();
     loadProfile();
   }
 

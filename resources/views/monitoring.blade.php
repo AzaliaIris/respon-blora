@@ -236,6 +236,7 @@
     }
     Sidebar.render('/monitoring');
     buildTopbar('Monitoring Wilayah', 'Manajemen → Monitoring Wilayah');
+    loadNotifikasi();
     setTimeout(() => loadAll(), 100);
   }
 

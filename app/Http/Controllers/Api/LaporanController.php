@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Controllers\Api\NotifikasiController;
 
 class LaporanController extends Controller
 {
@@ -202,6 +203,8 @@ class LaporanController extends Controller
 
             DB::commit();
 
+            \App\Services\NotifikasiService::laporanBaru($laporan);
+
             $laporan->load(['foto', 'petugas:id,name,username']);
 
             return $this->successResponse(
@@ -282,6 +285,8 @@ class LaporanController extends Controller
             'diverifikasi_oleh'     => $user->id,
         ]);
 
+        \App\Services\NotifikasiService::statusBerubah($laporan->fresh(), 'diverifikasi');
+
         return $this->successResponse('Laporan berhasil diverifikasi', $laporan->fresh());
     }
 
@@ -343,6 +348,8 @@ class LaporanController extends Controller
             }
 
             $laporan->update($updateData);
+
+            \App\Services\NotifikasiService::statusBerubah($laporan->fresh(), $statusBaru);
 
             DB::commit();
 

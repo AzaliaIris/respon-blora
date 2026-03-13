@@ -243,8 +243,8 @@ function buildTopbar(title, crumb) {
     </div>
     <div class="topbar-right">
       <div class="topbar-icon-btn" id="btn-refresh" title="Refresh">🔄</div>
-      <div class="topbar-icon-btn" title="Notifikasi" style="position:relative">
-        🔔<span class="notif-dot"></span>
+      <div class="topbar-icon-btn" title="Notifikasi" style="position:relative" id="btn-notif" onclick="toggleNotifPanel()">
+        🔔<span class="notif-dot" id="notif-dot" style="display:none"></span>
       </div>
       <a href="/profil" title="Profil Saya: ${Auth.getUser()?.name||''}" style="text-decoration:none">
         <div style="width:34px;height:34px;border-radius:50%;background:${Fmt.avatarColor(Auth.getUser()?.role)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${Fmt.initials(Auth.getUser()?.name||'')}</div>
@@ -298,6 +298,121 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ── Notifikasi ──
+let notifData = [];
+
+async function loadNotifikasi() {
+  const res = await Api.get('/notifikasi');
+  if (!res?.ok) return;
+  notifData = res.data.data || [];
+  const unread = res.data.unread || 0;
+
+  // Update dot
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
+
+  // Update badge di sidebar laporan
+  sessionStorage.setItem('rb_menunggu', unread);
+}
+
+function toggleNotifPanel() {
+  let panel = document.getElementById('notif-panel');
+  if (panel) { panel.remove(); return; }
+
+  const tipeIcon = { laporan_baru:'📋', diverifikasi:'✅', ditindaklanjuti:'🔄', selesai:'🏆', ditutup:'🔒' };
+  const tipeColor = { laporan_baru:'var(--blue)', diverifikasi:'var(--teal)', ditindaklanjuti:'var(--purple)', selesai:'var(--green)', ditutup:'var(--red)' };
+
+  panel = document.createElement('div');
+  panel.id = 'notif-panel';
+  const isMobile = window.innerWidth <= 600;
+  panel.style.cssText = `
+    position:fixed;
+    top:${isMobile ? '0' : '56px'};
+    right:${isMobile ? '0' : '16px'};
+    left:${isMobile ? '0' : 'auto'};
+    bottom:${isMobile ? '0' : 'auto'};
+    width:${isMobile ? '100%' : '360px'};
+    max-height:${isMobile ? '100dvh' : '480px'};
+    background:white;
+    border:${isMobile ? 'none' : '1px solid var(--gray-100)'};
+    border-radius:${isMobile ? '0' : '12px'};
+    box-shadow:0 8px 32px rgba(0,0,0,0.12);
+    z-index:1000;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  `;
+  // panel.style.cssText = `
+  //   position:fixed; top:56px; right:16px; width:360px; max-height:480px;
+  //   background:white; border:1px solid var(--gray-100); border-radius:12px;
+  //   box-shadow:0 8px 32px rgba(0,0,0,0.12); z-index:999; overflow:hidden;
+  //   display:flex; flex-direction:column;
+  // `;
+
+  const unread = notifData.filter(n => !n.is_read).length;
+
+  panel.innerHTML = `
+    <div style="padding:14px 16px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${isMobile ? `<button onclick="document.getElementById('notif-panel').remove()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--gray-500);padding:0;line-height:1">←</button>` : ''}
+          <div style="font-weight:700;font-size:14px;color:var(--gray-900)">
+            🔔 Notifikasi ${unread > 0 ? `<span style="background:var(--red);color:white;font-size:10px;padding:1px 6px;border-radius:100px;margin-left:4px">${unread}</span>` : ''}
+          </div>
+        </div>
+        <button onclick="markAllRead()" style="font-size:11.5px;color:var(--blue);background:none;border:none;cursor:pointer;font-weight:600;font-family:inherit">
+          Tandai semua dibaca
+        </button>
+      </div>
+    <div style="overflow-y:auto;flex:1" id="notif-list">
+      ${notifData.length === 0
+        ? `<div style="text-align:center;padding:40px;color:var(--gray-400);font-size:13px">Belum ada notifikasi</div>`
+        : notifData.map(n => `
+          <div onclick="clickNotif(${n.id}, ${n.laporan_id})" style="
+            padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--gray-100);
+            background:${n.is_read ? 'white' : 'rgba(37,99,235,0.04)'};
+            display:flex; gap:10px; align-items:flex-start;
+            transition:background 0.15s;
+          " onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='${n.is_read ? 'white' : 'rgba(37,99,235,0.04)'}'">
+            <div style="width:34px;height:34px;border-radius:8px;background:${tipeColor[n.tipe]||'var(--blue)'}18;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">
+              ${tipeIcon[n.tipe]||'🔔'}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:${n.is_read?'500':'700'};color:var(--gray-900);margin-bottom:2px">${n.judul}</div>
+              <div style="font-size:12px;color:var(--gray-500);line-height:1.4;margin-bottom:4px">${n.pesan}</div>
+              <div style="font-size:11px;color:var(--gray-400)">${Fmt.datetime(n.created_at)}</div>
+            </div>
+            ${!n.is_read ? '<div style="width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:4px"></div>' : ''}
+          </div>`
+        ).join('')}
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // Tutup kalau klik di luar
+  setTimeout(() => {
+    document.addEventListener('click', function closePanel(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'btn-notif') {
+        panel.remove();
+        document.removeEventListener('click', closePanel);
+      }
+    });
+  }, 100);
+}
+
+async function clickNotif(id, laporanId) {
+  await Api.patch(`/notifikasi/${id}/read`);
+  document.getElementById('notif-panel')?.remove();
+  if (laporanId) window.location.href = `/laporan?id=${laporanId}`;
+  await loadNotifikasi();
+}
+
+async function markAllRead() {
+  await Api.patch('/notifikasi/read-all');
+  document.getElementById('notif-panel')?.remove();
+  await loadNotifikasi();
+}
+
 // Expose ke global scope agar bisa diakses dari script inline Blade
 window.Auth   = Auth;
 window.Api    = Api;
@@ -312,3 +427,7 @@ window.doLogout    = doLogout;
 // window.toggleEye = toggleEye;
 window.toggleSidebar = toggleSidebar;
 window.closeSidebar  = closeSidebar;
+window.toggleNotifPanel = toggleNotifPanel;
+window.markAllRead      = markAllRead;
+window.clickNotif       = clickNotif;
+window.loadNotifikasi   = loadNotifikasi;

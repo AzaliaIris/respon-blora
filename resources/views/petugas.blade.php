@@ -130,6 +130,7 @@
     }
     Sidebar.render('/petugas');
     buildTopbar('Aktivitas Petugas', 'Manajemen → Aktivitas Petugas');
+    loadNotifikasi();
     loadPetugas();
   }
 

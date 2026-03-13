@@ -196,7 +196,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Kecamatan <span class="req">*</span></label>
-                <select class="form-control" id="f-kecamatan">
+                <select class="form-control" id="f-kecamatan" onchange="updateDesa()">
                   <option value="">-- Pilih Kecamatan --</option>
                   <option>Blora</option><option>Cepu</option><option>Jepon</option>
                   <option>Randublatung</option><option>Kunduran</option><option>Ngawen</option>
@@ -208,7 +208,9 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Desa / Kelurahan</label>
-                <input type="text" class="form-control" id="f-desa" placeholder="Nama desa atau kelurahan">
+                <select class="form-control" id="f-desa" disabled>
+                  <option value="">-- Pilih kecamatan dulu --</option>
+                </select>
               </div>
             </div>
             <div class="form-group">
@@ -350,6 +352,7 @@
     }
     Sidebar.render('/form-laporan');
     buildTopbar('Buat Laporan Baru', 'Laporan → Buat Baru');
+    loadNotifikasi();
     Modal.init('modal-sukses');
 
     document.getElementById('f-nama-petugas').value = user.name;
@@ -446,6 +449,48 @@
     document.getElementById('gps-text').textContent = 'Klik tombol untuk deteksi lokasi Anda saat ini';
     Toast.show('Form direset.', 'info');
   }
+
+  const DESA_MAP = {
+    'Blora':        ['Bangkle','Beran','Jetis','Karangjati','Kauman','Kedungjenar','Mlangsen','Ngadirejo','Purwosari','Sendangharjo','Tempelan','Tempuran','Wulung'],
+    'Cepu':         ['Balun','Cabean','Cepu','Jipang','Jumbreng','Kapuan','Kentong','Mernung','Ngroto','Padangan','Pilangsari','Pohlandak','Sumberpitu','Tambakromo','Tegalrejo'],
+    'Jepon':        ['Balong','Bleboh','Blungun','Geneng','Gersi','Jepon','Jomblang','Kemiri','Kemirirejo','Ketringan','Klopodhuwur','Ngampel','Nglebur','Pelem','Soko','Turirejo'],
+    'Randublatung': ['Bekutuk','Bodeh','Boyolayar','Genjor','Kalirejo','Karanggeneng','Kalisari','Kutukan','Laju','Medalem','Mojowetan','Ngliron','Nginggil','Pilang','Randublatung','Sumberejo','Tanggel','Temulus','Wulung'],
+    'Kunduran':     ['Balong','Bejirejo','Botoreco','Brangkal','Gagakan','Gandu','Gedangdowo','Jagong','Karanganyar','Karanggeneng','Kemiri','Kunduran','Kuwik','Mangunrejo','Ngilen','Soko','Sonokidul','Sulursari','Toroh'],
+    'Ngawen':       ['Bandungrejo','Bogowanti','Bradag','Gedangan','Kalangan','Keser','Kowangan','Kropak','Kumurejo','Ngawen','Sendangrejo','Sendangwungu','Sumberagung','Talokwohmojo','Trembulrejo'],
+    'Bogorejo':     ['Bogorejo','Harjowinangun','Kalangan','Kembang','Petak','Pojok','Sidomulyo','Soko','Sukorejo','Tambahrejo','Tempurrejo','Turi','Watutumpeng'],
+    'Todanan':      ['Bedingin','Cokrowati','Dalangan','Gunungan','Kembang','Ketileng','Ledok','Nglengkir','Pengkol','Sambongrejo','Sendang','Singonegoro','Sonorejo','Todanan','Tunjungan','Wulung'],
+    'Japah':        ['Balongsari','Gabusan','Harjodowo','Japah','Jiworejo','Karanganyar','Karangsari','Kawengan','Nglandeyan','Sumberejo','Sumur','Tempellemahbang','Tinapan'],
+    'Banjarejo':    ['Banjarejo','Botorejo','Gandu','Gempolrejo','Jatisari','Kalitengah','Karanganyar','Kedungringin','Pelemsengir','Sidomulyo','Sidomukti','Sumberejo','Turi','Turi Lor','Wonosemi'],
+    'Jati':         ['Gempol','Jiwan','Jati','Karangrowo','Kembang','Mojorembun','Ngapus','Ngraho','Pelem','Plosorejo','Sumurboto','Sumberjo','Tambakselo','Tembang'],
+    'Jiken':        ['Bleboh','Cabak','Geneng','Jiwan','Jiken','Ketringan','Ledok','Lembupurwo','Nglebur','Ngraho','Pegalongan','Prigelan','Soko','Sumber','Wulung'],
+    'Kedungtuban':  ['Bajo','Bekutuk','Galuk','Gadon','Kemiri','Kedungtuban','Ngraho','Nglanjuk','Nglandeyan','Nguluhan','Ngrubuhan','Ngraho','Ronggolawe','Sumber','Sumberagung','Tanjung','Wado'],
+    'Kradenan':     ['Bapangan','Crewek','Gabusan','Gondel','Grabagan','Kalinanas','Kalisari','Katur','Kradenan','Kuwu','Medalem','Mendenrejo','Mulyorejo','Pakis','Patalan','Sambongrejo','Sumbersoko','Tanjungrejo','Tawangrejo','Tinapan','Trembes','Wado'],
+    'Sambong':      ['Biting','Giyanti','Gombang','Gunungsari','Kalinanas','Ledok','Leran','Lumbungmas','Mendenrejo','Ngraho','Sambong','Sambongrejo','Sumber','Sumberejo'],
+    'Tunjungan':    ['Adirejo','Beran','Gempolrejo','Kalangan','Kedungrejo','Keser','Krangganharjo','Ngraho','Sambongrejo','Soko','Sukorejo','Tambahrejo','Tunjungan','Turi'],
+  };
+
+  function updateDesa() {
+    const kec   = document.getElementById('f-kecamatan').value;
+    const sel   = document.getElementById('f-desa');
+    const desas = DESA_MAP[kec] || [];
+
+    sel.innerHTML = '';
+    if (!kec || desas.length === 0) {
+      sel.innerHTML = '<option value="">-- Pilih kecamatan dulu --</option>';
+      sel.disabled  = true;
+      return;
+    }
+
+    sel.innerHTML = '<option value="">-- Pilih Desa/Kelurahan --</option>';
+    desas.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+  }
+
+  window.updateDesa = updateDesa;
 
   async function submitLaporan() {
     const namaUsaha  = document.getElementById('f-nama-usaha').value.trim();

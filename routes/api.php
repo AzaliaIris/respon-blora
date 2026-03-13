@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\NotifikasiController;
 use Illuminate\Support\Facades\Route;
 
 // ═══════════════════════════════════════
@@ -70,5 +71,11 @@ Route::middleware(['auth:api', 'active.user'])->group(function () {
              Route::get('/tingkat-selesai',    [DashboardController::class, 'tingkatSelesai']);
              Route::get('/aktivitas-petugas',  [DashboardController::class, 'aktivitasPetugas']);
          });
+
+    Route::prefix('notifikasi')->group(function () {
+        Route::get('/',              [NotifikasiController::class, 'index']);
+        Route::patch('/{id}/read',   [NotifikasiController::class, 'markRead']);
+        Route::patch('/read-all',    [NotifikasiController::class, 'markAllRead']);
+    });
 
 });
